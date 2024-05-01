@@ -47,7 +47,7 @@ while (($iter < $TRAINING_ITERS)); do
     fi
 
     read -r -d '' generate_commands <<EOF
-../batch_inference.py
+../../batch_inference.py
     --eval_task generate_vllm \
     --pretrain $POLICY_MODEL_PATH \
     --max_new_tokens 1024 \
@@ -67,7 +67,7 @@ EOF
     checkSuccess "GENERATE"
 
     read -r -d '' get_rewards_commands <<EOF
-../batch_inference.py
+../../batch_inference.py
     --eval_task rm \
     --pretrain $REWARD_MODEL_PATH \
     --bf16 \
@@ -85,7 +85,7 @@ EOF
     checkSuccess "RM"
 
     read -r -d '' sft_commands <<EOF
-../train_sft.py \
+../../train_sft.py \
     --max_len 2048 \
     --dataset $RM_OUTPUT \
     --dataset_probs 1.0 \
@@ -103,7 +103,8 @@ EOF
     --use_wandb $WANDB_API_KEY \
     --wandb_org $WANDB_ENTITY \
     --wandb_project $WANDB_PROJECT \
-    --wandb_run_name $WANDB_RUN_NAME \
+    --wandb_run_name $WANDB_RUN_NAME
+EOF
     echo $sft_commands
     deepspeed $sft_commands
     checkSuccess "SFT"
