@@ -38,6 +38,7 @@ def batch_generate_vllm(args):
         use_beam_search=False,
         temperature=args.temperature,
         repetition_penalty=args.repetition_penalty,
+        # n=args.best_of_n
     )
 
     prompts_data = blending_datasets(
@@ -74,6 +75,14 @@ def batch_generate_vllm(args):
             prompt = output.prompt
             output = output.outputs[0].text
             output_dataset.append({"input": prompt, "output": output})
+
+    # utilize key, cache
+    # request_outputs = llm.generate(prompts, sampling_params)
+    # for request_output in request_outputs:
+    #     prompt = request_output.prompt
+    #     for completion in request_output.outputs:
+    #         output = completion.text
+    #         output_dataset.append({"input": prompt, "output": output})
 
     with jsonlines.open(args.output_path, mode="w") as writer:
         writer.write_all(output_dataset)
@@ -206,9 +215,12 @@ def batch_rm_inference(args):
 
     # configure tokenizer
     tokenizer = get_tokenizer(args.pretrain, model, "left", strategy, use_fast=not args.disable_fast_tokenizer)
+    if "mistral" in args.pretrain.lower():  # mistral wants left padding when using flash attention 2 https://github.com/huggingface/trl/issues/1018#issuecomment-1838439183
+        tokenizer.padding_side = "left"
 
     # prepare models
     model = strategy.prepare(model)
+    # model.config["use_cache"] = False  # otherwise, Mistral demands padding_side="left" while padding_side="right" is needed
     model.eval()
 
     dataset = blending_datasets(
@@ -238,11 +250,14 @@ def batch_rm_inference(args):
         for _, input_ids, attention_masks, info in pbar:
             input_ids = input_ids.squeeze(1).to(torch.cuda.current_device())
             attention_masks = attention_masks.squeeze(1).to(torch.cuda.current_device())
+            # print(tokenizer.batch_decode(input_ids))
+            # print(attention_masks)
             rewards = model(input_ids, attention_masks)
             for prompt, output, reward in zip(info["input"], info["output"], rewards):
                 output_dataset.append({"input": prompt, "output": output, "reward": reward.item()})
 
             dist.barrier()
+            break
 
     with jsonlines.open(args.output_path + str(strategy.get_rank()), mode="w") as writer:
         writer.write_all(output_dataset)
@@ -303,7 +318,7 @@ if __name__ == "__main__":
     parser.add_argument("--temperature", type=float, default=1.0)
     parser.add_argument("--repetition_penalty", type=float, default=1.2)
     parser.add_argument("--best_of_n", type=int, default=1)
-    parser.add_argument("--input_template", type=str, default="Human: {}\nAssistant: ")
+    parser.add_argument("--input_template", type=str, default="[INST] {} [/INST] ")
     parser.add_argument("--max_new_tokens", type=int, default=1024)
     parser.add_argument(
         "--post_processor",
