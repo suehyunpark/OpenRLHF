@@ -3,19 +3,20 @@ set -x
 mkdir -p ./ckpt/mpa/7b_mistral_66k_rs
 mkdir -p ./log/mpa
 
-export CUDA_VISIBLE_DEVICES="0,1,2,3"
+export CUDA_VISIBLE_DEVICES="9,8,10,11"
+export NCCL_DEBUG=WARN
 
 GENERATE_OUTPUT=./ckpt/mpa/7b_mistral_66k_rs/generate.jsonl
 RM_OUTPUT=./ckpt/mpa/7b_mistral_66k_rs/rm.jsonl
 MODEL_OUTPUT_PATH=./ckpt/mpa/7b_mistral_66k_rs
 ITER_LOG_PATH=./log/mpa/7b_mistral_66k_rs_iter.txt
 
-TRAINING_ITERS=20
-ROLLOUT_BATCH_SIZE=2048
+TRAINING_ITERS=30
+ROLLOUT_BATCH_SIZE=2048  # 8
 
 POLICY_MODEL_PATH="kaist-ai/mpa-Mistral-7b-v0.2-hf-sft-epoch1"
 REWARD_MODEL_PATH="kaist-ai/mpa-Mistral-7b-v0.2-hf-rm-66k"
-DATASET_PATH="/mnt/nas/suehyun/MPA/data/train/preferences_v1_responses_for_orpo_64k_v2_ppo_mistral_input.jsonl"
+DATASET_PATH="kaist-ai/mpa-train-pairwise-merged-66k"
 
 BEST_OF=4
 
@@ -24,6 +25,8 @@ WANDB_ENTITY="suehyun"
 WANDB_PROJECT="mpa-rm"
 WANDB_RUN_NAME="mpa-Mistral-7b-v0.2-hf-rs-66k"
 
+# INPUT_TEMPLATE='[INST] {} [/INST] '  # cannot pass string with curly brackets to python as argument
+    # --input_template "$INPUT_TEMPLATE" \  # only need to pass this during first generation of rollouts
 
 checkSuccess() {
     if [[ $? != 0 ]]; then
@@ -52,11 +55,11 @@ while (($iter < $TRAINING_ITERS)); do
     --pretrain $POLICY_MODEL_PATH \
     --max_new_tokens 1024 \
     --dataset $DATASET_PATH  \
-    --input_key prompt \
-    --dataset_probs 0.5,0.5 \
+    --input_key input \
+    --dataset_probs 1.0 \
     --temperature 0.9 \
     --flash_attn \
-    --tp_size 8 \
+    --tp_size 4 \
     --best_of_n $BEST_OF \
     --iter $iter \
     --rollout_batch_size $ROLLOUT_BATCH_SIZE \
@@ -75,7 +78,7 @@ EOF
     --dataset $GENERATE_OUTPUT  \
     --dataset_probs 1.0 \
     --zero_stage 0 \
-    --flash_attn \
+    --tp_size 4 \
     --post_processor rs \
     --micro_batch_size 4 \
     --output_path $RM_OUTPUT
