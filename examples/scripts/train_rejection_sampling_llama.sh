@@ -32,23 +32,23 @@ while (($iter < $TRAINING_ITERS)); do
         POLICY_MODEL_PATH=$MODEL_OUTPUT_PATH
     fi
 
-    read -r -d '' generate_commands <<EOF
-../batch_inference.py
-    --eval_task generate_vllm \
-    --pretrain $POLICY_MODEL_PATH \
-    --max_new_tokens 1024 \
-    --dataset Open-Orca/OpenOrca,Dahoas/full-hh-rlhf  \
-    --dataset_probs 0.5,0.5 \
-    --temperature 0.9
-    --tp_size 8
-    --best_of_n 16 \
-    --iter $iter \
-    --rollout_batch_size $ROLLOUT_BATCH_SIZE \
-    --output_path $GENERATE_OUTPUT
-EOF
-    echo $generate_commands
-    python $generate_commands
-    checkSuccess "GENERATE"
+#     read -r -d '' generate_commands <<EOF
+# ../batch_inference.py
+#     --eval_task generate_vllm \
+#     --pretrain $POLICY_MODEL_PATH \
+#     --max_new_tokens 1024 \
+#     --dataset Open-Orca/OpenOrca,Dahoas/full-hh-rlhf  \
+#     --dataset_probs 0.5,0.5 \
+#     --temperature 0.9
+#     --tp_size 8
+#     --best_of_n 16 \
+#     --iter $iter \
+#     --rollout_batch_size $ROLLOUT_BATCH_SIZE \
+#     --output_path $GENERATE_OUTPUT
+# EOF
+#     echo $generate_commands
+#     python $generate_commands
+#     checkSuccess "GENERATE"
 
     read -r -d '' get_rewards_commands <<EOF
 ../batch_inference.py

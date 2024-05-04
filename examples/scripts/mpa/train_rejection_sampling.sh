@@ -3,7 +3,7 @@ set -x
 mkdir -p ./ckpt/mpa/7b_mistral_66k_rs
 mkdir -p ./log/mpa
 
-export CUDA_VISIBLE_DEVICES="9,8,10,11"
+export CUDA_VISIBLE_DEVICES="4,6,7,5"
 export NCCL_DEBUG=WARN
 
 GENERATE_OUTPUT=./ckpt/mpa/7b_mistral_66k_rs/generate.jsonl
@@ -27,6 +27,7 @@ WANDB_RUN_NAME="mpa-Mistral-7b-v0.2-hf-rs-66k"
 
 # INPUT_TEMPLATE='[INST] {} [/INST] '  # cannot pass string with curly brackets to python as argument
     # --input_template "$INPUT_TEMPLATE" \  # only need to pass this during first generation of rollouts
+# do not use flash attention 2 with mistral-based reward model because of padding side problem
 
 checkSuccess() {
     if [[ $? != 0 ]]; then
