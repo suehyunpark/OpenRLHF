@@ -73,6 +73,7 @@ def train(args):
         load_in_4bit=args.load_in_4bit,
         ds_config=strategy.get_ds_eval_config(offload=False),
     )
+    initial_model.model.config.use_cache = False  # https://github.com/huggingface/trl/issues/1217#issuecomment-1889282654
     get_tokenizer(args.pretrain, initial_model.model, "left", strategy)
 
     strategy.print("reward normalization status: {}".format(args.normalize_reward))
