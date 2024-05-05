@@ -2,7 +2,7 @@ set -x
 
 mkdir -p ./ckpt/mpa/7b_mistral_66k_ppo
 
-export CUDA_VISIBLE_DEVICES="8,9,10,11,12,13,14,15"
+export CUDA_VISIBLE_DEVICES="5,6,4,7"
 
 SFT_MODEL_PATH="kaist-ai/mpa-Mistral-7b-v0.2-hf-sft-epoch1"
 REWARD_MODEL_PATH="kaist-ai/mpa-Mistral-7b-v0.2-hf-rm-66k"
@@ -23,9 +23,9 @@ read -r -d '' training_commands <<EOF
     --reward_pretrain $REWARD_MODEL_PATH \
     --save_path $SAVE_PATH \
     --micro_train_batch_size 2 \
-    --train_batch_size 64 \
+    --train_batch_size 128 \
     --micro_rollout_batch_size 4 \
-    --rollout_batch_size 512 \
+    --rollout_batch_size 1024 \
     --max_epochs 1 \
     --prompt_max_len 1024 \
     --generate_max_len 1024 \

@@ -3,7 +3,7 @@ mkdir -p ./ckpt/mpa/7b_mistral_66k_ppo
 
 export PATH=$HOME/.local/bin/:$PATH
 
-export CUDA_VISIBLE_DEVICES="8,9,10,11,12,13,14,15"
+export CUDA_VISIBLE_DEVICES="5,4,6,7"
 
 SFT_MODEL_PATH="kaist-ai/mpa-Mistral-7b-v0.2-hf-sft-epoch1"
 REWARD_MODEL_PATH="kaist-ai/mpa-Mistral-7b-v0.2-hf-rm-66k"
@@ -12,7 +12,7 @@ DATASET_PATH="kaist-ai/mpa-train-pairwise-merged-66k"
 SAVE_PATH="./ckpt/mpa/7b_mistral_66k_ppo"
 
 WANDB_API_KEY="339cad8697ca8b7558010d3f8c4aa40788e64d12"
-WANDB_ENTITY="suehyun"Ω
+WANDB_ENTITY="suehyun"
 WANDB_PROJECT="mpa-rm"
 WANDB_RUN_NAME="mpa-Mistral-7b-v0.2-hf-ppo-66k"
 
@@ -26,9 +26,9 @@ ray job submit --address="http://127.0.0.1:8265" \
     --reward_num_nodes 1 \
     --reward_num_gpus_per_node 1 \
     --critic_num_nodes 1 \
-    --critic_num_gpus_per_node 2 \
+    --critic_num_gpus_per_node 1 \
     --actor_num_nodes 1 \
-    --actor_num_gpus_per_node 4 \
+    --actor_num_gpus_per_node 1 \
     --pretrain $SFT_MODEL_PATH \
     --reward_pretrain $REWARD_MODEL_PATH \
     --save_path $SAVE_PATH \
@@ -51,7 +51,6 @@ ray job submit --address="http://127.0.0.1:8265" \
     --normalize_reward \
     --actor_init_on_gpu \
     --adam_offload \
-    --flash_attn \
     --gradient_checkpointing \
     --use_wandb $WANDB_API_KEY \
     --wandb_org $WANDB_ENTITY \
@@ -60,3 +59,5 @@ ray job submit --address="http://127.0.0.1:8265" \
     # --vllm_num_engines 1 \
     # --vllm_tensor_parallel_size 2 \
         # --colocate_critic_reward \
+
+    #     --flash_attn \
