@@ -3,7 +3,7 @@ mkdir -p ./ckpt/mpa/7b_mistral_66k_ppo
 
 export PATH=$HOME/.local/bin/:$PATH
 
-export CUDA_VISIBLE_DEVICES="5,4,6,7"
+# export CUDA_VISIBLE_DEVICES="5,4,6,7"
 
 SFT_MODEL_PATH="kaist-ai/mpa-Mistral-7b-v0.2-hf-sft-epoch1"
 REWARD_MODEL_PATH="kaist-ai/mpa-Mistral-7b-v0.2-hf-rm-66k"
@@ -32,10 +32,10 @@ ray job submit --address="http://127.0.0.1:8265" \
     --pretrain $SFT_MODEL_PATH \
     --reward_pretrain $REWARD_MODEL_PATH \
     --save_path $SAVE_PATH \
-    --micro_train_batch_size 2 \
-    --train_batch_size 64 \
-    --micro_rollout_batch_size 4 \
-    --rollout_batch_size 512 \
+    --micro_train_batch_size 4 \
+    --train_batch_size 128 \
+    --micro_rollout_batch_size 8 \
+    --rollout_batch_size 1024 \
     --max_epochs 1 \
     --prompt_max_len 1024 \
     --generate_max_len 1024 \
@@ -56,8 +56,9 @@ ray job submit --address="http://127.0.0.1:8265" \
     --wandb_org $WANDB_ENTITY \
     --wandb_project $WANDB_PROJECT \
     --wandb_run_name $WANDB_RUN_NAME \
-    # --vllm_num_engines 1 \
-    # --vllm_tensor_parallel_size 2 \
+    --flash_attn \
+    --vllm_num_engines 1 \
+    --vllm_tensor_parallel_size 1 \
         # --colocate_critic_reward \
 
     #     --flash_attn \

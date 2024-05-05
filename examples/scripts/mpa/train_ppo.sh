@@ -23,9 +23,9 @@ read -r -d '' training_commands <<EOF
     --reward_pretrain $REWARD_MODEL_PATH \
     --save_path $SAVE_PATH \
     --micro_train_batch_size 2 \
-    --train_batch_size 128 \
+    --train_batch_size 64 \
     --micro_rollout_batch_size 4 \
-    --rollout_batch_size 1024 \
+    --rollout_batch_size 512 \
     --max_epochs 1 \
     --prompt_max_len 1024 \
     --generate_max_len 1024 \
