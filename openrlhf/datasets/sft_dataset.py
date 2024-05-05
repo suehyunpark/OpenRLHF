@@ -147,6 +147,9 @@ class SFTDataset(Dataset):
             infos["input"].append(info["input"])
             infos["output"].append(info["output"])
 
+        # input_ids = zero_pad_sequences(input_ids, self.tokenizer.padding_side, self.tokenizer.pad_token_id)  # Mistral wants left padding during forward
+        # attention_masks = zero_pad_sequences(attention_masks, self.tokenizer.padding_side)
+        
         input_ids = zero_pad_sequences(input_ids, "right", self.tokenizer.pad_token_id)
         attention_masks = zero_pad_sequences(attention_masks, "right")
         return prompt_ids_lens, input_ids, attention_masks, infos

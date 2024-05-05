@@ -64,6 +64,7 @@ class Actor(nn.Module):
                 attn_implementation=attn_implementation,
                 quantization_config=nf4_config,
                 torch_dtype="auto",
+                use_cache=False  
             )
 
             # LoRA
@@ -110,7 +111,7 @@ class Actor(nn.Module):
             "do_sample": kwargs.get("do_sample", True),
             "early_stopping": True,
             "temperature": kwargs.get("temperature", 1),
-            "use_cache": True,
+            "use_cache": True,  # False
             "num_beams": kwargs.get("num_beams", 1),
             "attention_mask": kwargs.get("attention_mask"),
             "eos_token_id": kwargs.get("eos_token_id"),
@@ -166,7 +167,7 @@ class Actor(nn.Module):
         # https://github.com/OpenLLMAI/OpenRLHF/issues/217
         position_ids = attention_mask.long().cumsum(-1) - 1
         position_ids.masked_fill_(attention_mask == 0, 1)
-        output = self.model(sequences, attention_mask=attention_mask, position_ids=position_ids)
+        output = self.model(sequences, attention_mask=attention_mask, position_ids=position_ids, use_cache=False)  # to prevent padding side error
         log_probs = log_probs_from_logits(output["logits"][:, :-1, :], sequences[:, 1:])
 
         if return_output:

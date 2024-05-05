@@ -99,6 +99,7 @@ class NaiveExperienceMaker(ABC):
 
     # tokenizer
     def tokenize_fn(self, texts, max_length, device):
+        self.tokenizer.padding_side = "left"
         batch = self.tokenizer(
             texts,
             return_tensors="pt",

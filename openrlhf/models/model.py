@@ -54,7 +54,8 @@ def get_llm_for_sequence_regression(
 
     config = AutoConfig.from_pretrained(model_name_or_path, trust_remote_code=True)
     config.normalize_reward = normalize_reward
-    config._attn_implementation = "flash_attention_2" if use_flash_attention_2 else "eager"
+    # config._attn_implementation = "flash_attention_2" if use_flash_attention_2 else "eager"
+    config._attn_implementation = "eager"  # Mistral-based reward/critic model cannot be used with flash_attention_2 as it takes input from generated sequences that always have padding_side="right"
 
     try:
         base_class = AutoModel._model_mapping[type(config)]
