@@ -32,6 +32,7 @@ ray job submit --address="http://127.0.0.1:8265" \
     --pretrain $SFT_MODEL_PATH \
     --reward_pretrain $REWARD_MODEL_PATH \
     --save_path $SAVE_PATH \
+    --save_steps 800 \
     --micro_train_batch_size 4 \
     --train_batch_size 128 \
     --micro_rollout_batch_size 8 \
@@ -62,3 +63,6 @@ ray job submit --address="http://127.0.0.1:8265" \
         # --colocate_critic_reward \
 
     #     --flash_attn \
+      # OOM when rollout micro batch size is 16 (1 vllm engine, 1/2 tensor parallel)
+      # OOM when train micro batch size is 8
+      # vllm engine 2 stalls

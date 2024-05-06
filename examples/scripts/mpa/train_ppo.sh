@@ -27,6 +27,7 @@ read -r -d '' training_commands <<EOF
     --micro_rollout_batch_size 4 \
     --rollout_batch_size 512 \
     --max_epochs 1 \
+    --save_steps 800 \
     --prompt_max_len 1024 \
     --generate_max_len 1024 \
     --zero_stage 2 \
