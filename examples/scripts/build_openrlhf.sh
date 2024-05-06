@@ -1,3 +1,3 @@
 set -x
 
-pip install --user ../../ 
+pip install --trusted-host=pypi.python.org --trusted-host=pypi.org --trusted-host=files.pythonhosted.org --user ../../ 
