@@ -76,7 +76,7 @@ def batch_generate_vllm(args):
             output = output.outputs[0].text
             output_dataset.append({"input": prompt, "output": output})
 
-    # utilize key, cache
+    # utilize key, cache -> slower than above
     # request_outputs = llm.generate(prompts, sampling_params)
     # for request_output in request_outputs:
     #     prompt = request_output.prompt
@@ -215,8 +215,6 @@ def batch_rm_inference(args):
 
     # configure tokenizer
     tokenizer = get_tokenizer(args.pretrain, model, "left", strategy, use_fast=not args.disable_fast_tokenizer)
-    if "mistral" in args.pretrain.lower():  # mistral wants left padding when using flash attention 2 https://github.com/huggingface/trl/issues/1018#issuecomment-1838439183
-        tokenizer.padding_side = "left"
 
     # prepare models
     model = strategy.prepare(model)
