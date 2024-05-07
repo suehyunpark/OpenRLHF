@@ -6,12 +6,13 @@ import jsonlines
 import torch
 from torch import distributed as dist
 from tqdm import tqdm
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, MistralForSequenceClassification
 
 from openrlhf.datasets import PromptDataset, SFTDataset
 from openrlhf.models import Actor, get_llm_for_sequence_regression
 from openrlhf.utils import blending_datasets, get_processor, get_strategy, get_tokenizer
 
+import sys
 
 def batch_generate_vllm(args):
     from vllm import LLM, SamplingParams
@@ -220,7 +221,7 @@ def batch_rm_inference(args):
     model = strategy.prepare(model)
     # model.config["use_cache"] = False  # otherwise, Mistral demands padding_side="left" while padding_side="right" is needed
     model.eval()
-
+    
     dataset = blending_datasets(
         args.dataset,
         args.dataset_probs,
@@ -248,10 +249,12 @@ def batch_rm_inference(args):
         for _, input_ids, attention_masks, info in pbar:
             input_ids = input_ids.squeeze(1).to(torch.cuda.current_device())
             attention_masks = attention_masks.squeeze(1).to(torch.cuda.current_device())
-            # print(tokenizer.batch_decode(input_ids))
             # print(attention_masks)
-            rewards = model(input_ids, attention_masks)
+            rewards = model(input_ids, attention_masks).logits
             for prompt, output, reward in zip(info["input"], info["output"], rewards):
+                # print("Prompt:", prompt)
+                # print("Output:", output)
+                # print("Reward:", reward.item())
                 output_dataset.append({"input": prompt, "output": output, "reward": reward.item()})
 
             dist.barrier()
