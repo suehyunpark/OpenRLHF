@@ -143,7 +143,9 @@ docs/.build
 *.pt
 
 core
-*/ckpt/*
+**/ckpt/*
+**/log/*
+**/wandb/*
 .vscode
 .nfs*
 *jianh*
