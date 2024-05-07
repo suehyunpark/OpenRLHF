@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 from peft import LoraConfig, get_peft_model
 from peft.tuners.lora import LoraLayer
-from transformers import AutoConfig, AutoModel, BitsAndBytesConfig
+from transformers import AutoConfig, AutoModel, BitsAndBytesConfig, MistralForSequenceClassification
 from transformers.deepspeed import HfDeepSpeedConfig
 from transformers.dynamic_module_utils import get_class_from_dynamic_module
 from transformers.models.mixtral.modeling_mixtral import MixtralSparseMoeBlock
@@ -60,8 +60,10 @@ def get_llm_for_sequence_regression(
     try:
         base_class = AutoModel._model_mapping[type(config)]
         base_pretrained_class = base_class.__base__
+        print(f"BASE_MODEL_CLASS: {base_pretrained_class}, PRETRAINED_MODEL_CLASS: {base_class}")
         if model_type == "reward":
-            cls_class = _get_reward_model(base_pretrained_class, base_class)
+            # cls_class = _get_reward_model(base_pretrained_class, base_class)
+            cls_class = MistralForSequenceClassification
         else:
             cls_class = _get_critic_model(base_pretrained_class, base_class)
     except Exception as e:
@@ -110,7 +112,7 @@ def get_llm_for_sequence_regression(
         )
     else:
         nf4_config = None
-
+    
     model = cls_class.from_pretrained(
         model_name_or_path,
         config=config,
@@ -119,6 +121,8 @@ def get_llm_for_sequence_regression(
         quantization_config=nf4_config,
         **kwargs,
     )
+    print("Reward model")
+    print(model)
 
     # LoRA
     if lora_rank > 0:
