@@ -16,7 +16,7 @@ ROLLOUT_BATCH_SIZE=128
 
 POLICY_MODEL_PATH="kaist-ai/mpa-Mistral-7b-v0.2-hf-sft-epoch1"
 REWARD_MODEL_PATH="kaist-ai/mpa-Mistral-7b-v0.2-hf-rm-66k"
-DATASET_PATH="kaist-ai/mpa-train-pairwise-merged-66k"
+DATASET_PATH="kaist-ai/mpa-pairwise-merged-66k"
 
 BEST_OF=4
 
@@ -64,8 +64,8 @@ while (($iter < $TRAINING_ITERS)); do
     --best_of_n $BEST_OF \
     --iter $iter \
     --rollout_batch_size $ROLLOUT_BATCH_SIZE \
-    --output_path $GENERATE_OUTPUT
-EOF
+# #     --output_path $GENERATE_OUTPUT
+# EOF
     echo $generate_commands
     python $generate_commands
     checkSuccess "GENERATE"
