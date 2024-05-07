@@ -272,6 +272,7 @@ class RemoteExperienceMaker(NaiveExperienceMaker):
         wait_time = time.time() - start
 
         base_action_log_probs, value, rewards = ref_values[0], ref_values[1], ref_values[2:]
+        print("rewards", rewards)
         base_action_log_probs, value = base_action_log_probs.to(device), value.to(device)
         rewards = [r.to(device) for r in rewards]
         r = self.reward_fn(rewards) if len(rewards) > 0 else rewards[0]

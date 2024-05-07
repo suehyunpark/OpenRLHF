@@ -6,14 +6,14 @@ export PATH=$HOME/.local/bin/:$PATH
 # export CUDA_VISIBLE_DEVICES="5,4,6,7"
 
 SFT_MODEL_PATH="kaist-ai/mpa-Mistral-7b-v0.2-hf-sft-epoch1"
-REWARD_MODEL_PATH="kaist-ai/mpa-Mistral-7b-v0.2-hf-rm-66k"
-DATASET_PATH="kaist-ai/mpa-train-pairwise-merged-66k"
+REWARD_MODEL_PATH="kaist-ai/mpa-Mistral-7b-v0.2-rm-66k-openrlhf"
+DATASET_PATH="kaist-ai/mpa-pairwise-merged-66k"
 
 SAVE_PATH="./ckpt/mpa/7b_mistral_66k_ppo"
 
 WANDB_API_KEY="339cad8697ca8b7558010d3f8c4aa40788e64d12"
 WANDB_ENTITY="suehyun"
-WANDB_PROJECT="mpa-rm"
+WANDB_PROJECT="mpa-ppo"
 WANDB_RUN_NAME="mpa-Mistral-7b-v0.2-hf-ppo-66k"
 
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
@@ -32,11 +32,10 @@ ray job submit --address="http://127.0.0.1:8265" \
     --pretrain $SFT_MODEL_PATH \
     --reward_pretrain $REWARD_MODEL_PATH \
     --save_path $SAVE_PATH \
-    --save_steps 800 \
     --micro_train_batch_size 4 \
-    --train_batch_size 128 \
+    --train_batch_size 64 \
     --micro_rollout_batch_size 8 \
-    --rollout_batch_size 1024 \
+    --rollout_batch_size 256 \
     --max_epochs 1 \
     --prompt_max_len 1024 \
     --generate_max_len 1024 \
@@ -48,7 +47,7 @@ ray job submit --address="http://127.0.0.1:8265" \
     --prompt_data $DATASET_PATH \
     --prompt_data_probs 1.0 \
     --input_key input \
-    --max_samples 80000 \
+    --max_samples 33000 \
     --normalize_reward \
     --actor_init_on_gpu \
     --adam_offload \
@@ -66,3 +65,4 @@ ray job submit --address="http://127.0.0.1:8265" \
       # OOM when rollout micro batch size is 16 (1 vllm engine, 1/2 tensor parallel)
       # OOM when train micro batch size is 8
       # vllm engine 2 stalls
+      # max samples = half of our dataset to finish training within 2 days
