@@ -1,18 +1,18 @@
 set -x
 
-mkdir -p ./ckpt/mpa/7b_mistral_66k_rs
-mkdir -p ./log/mpa
+mkdir -p ./ckpt/7b_mistral_66k_rs
+mkdir -p ./log
 
-export CUDA_VISIBLE_DEVICES="4,6,7,5"
+export CUDA_VISIBLE_DEVICES="0,1,2,3"
 export NCCL_DEBUG=WARN
 
-GENERATE_OUTPUT=./ckpt/mpa/7b_mistral_66k_rs/generate.jsonl
-RM_OUTPUT=./ckpt/mpa/7b_mistral_66k_rs/rm.jsonl
-MODEL_OUTPUT_PATH=./ckpt/mpa/7b_mistral_66k_rs
-ITER_LOG_PATH=./log/mpa/7b_mistral_66k_rs_iter.txt
+GENERATE_OUTPUT=./ckpt/7b_mistral_66k_rs/generate.jsonl
+RM_OUTPUT=./ckpt/7b_mistral_66k_rs/rm.jsonl
+MODEL_OUTPUT_PATH=./ckpt/7b_mistral_66k_rs
+ITER_LOG_PATH=./log/7b_mistral_66k_rs_iter.txt
 
-TRAINING_ITERS=30
-ROLLOUT_BATCH_SIZE=2048  # 8
+TRAINING_ITERS=480
+ROLLOUT_BATCH_SIZE=128
 
 POLICY_MODEL_PATH="kaist-ai/mpa-Mistral-7b-v0.2-hf-sft-epoch1"
 REWARD_MODEL_PATH="kaist-ai/mpa-Mistral-7b-v0.2-hf-rm-66k"
@@ -81,7 +81,7 @@ EOF
     --zero_stage 0 \
     --tp_size 4 \
     --post_processor rs \
-    --micro_batch_size 4 \
+    --micro_batch_size 32 \
     --output_path $RM_OUTPUT
 EOF
     echo $get_rewards_commands
@@ -94,7 +94,7 @@ EOF
     --dataset $RM_OUTPUT \
     --dataset_probs 1.0 \
     --train_batch_size 128 \
-    --micro_train_batch_size 2 \
+    --micro_train_batch_size 8 \
     --pretrain $POLICY_MODEL_PATH \
     --save_path $MODEL_OUTPUT_PATH \
     --lr_scheduler cosine \
