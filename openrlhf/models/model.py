@@ -54,16 +54,16 @@ def get_llm_for_sequence_regression(
 
     config = AutoConfig.from_pretrained(model_name_or_path, trust_remote_code=True)
     config.normalize_reward = normalize_reward
-    # config._attn_implementation = "flash_attention_2" if use_flash_attention_2 else "eager"
-    config._attn_implementation = "eager"  # Mistral-based reward/critic model cannot be used with flash_attention_2 as it takes input from generated sequences that always have padding_side="right"
+    config._attn_implementation = "flash_attention_2" if use_flash_attention_2 else "eager"
+    # config._attn_implementation = "eager"  # Mistral-based reward/critic model cannot be used with flash_attention_2 as it takes input from generated sequences that always have padding_side="right"
 
     try:
         base_class = AutoModel._model_mapping[type(config)]
         base_pretrained_class = base_class.__base__
         print(f"BASE_MODEL_CLASS: {base_pretrained_class}, PRETRAINED_MODEL_CLASS: {base_class}")
         if model_type == "reward":
-            # cls_class = _get_reward_model(base_pretrained_class, base_class)
-            cls_class = MistralForSequenceClassification
+            cls_class = _get_reward_model(base_pretrained_class, base_class)
+            # cls_class = MistralForSequenceClassification
         else:
             cls_class = _get_critic_model(base_pretrained_class, base_class)
     except Exception as e:
@@ -92,6 +92,7 @@ def get_llm_for_sequence_regression(
         base_class = get_class_from_dynamic_module(f"{module_file}.{auto_model_name}", model_name_or_path)
         if model_type == "reward":
             cls_class = _get_reward_model(base_pretrained_class, base_class)
+            # cls_class = MistralForSequenceClassification
         else:
             cls_class = _get_critic_model(base_pretrained_class, base_class)
 
