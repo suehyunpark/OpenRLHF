@@ -3,7 +3,7 @@ set -x
 mkdir -p ./ckpt/7b_mistral_66k_rs
 mkdir -p ./log
 
-# export CUDA_VISIBLE_DEVICES="0,1,2,3"
+export CUDA_VISIBLE_DEVICES="0,1,2,3"
 export NCCL_DEBUG=WARN
 
 GENERATE_OUTPUT=./ckpt/7b_mistral_66k_rs/generate.jsonl
@@ -22,8 +22,8 @@ BEST_OF=4
 
 WANDB_API_KEY="339cad8697ca8b7558010d3f8c4aa40788e64d12"
 WANDB_ENTITY="suehyun"
-WANDB_PROJECT="mpa-rm"
-WANDB_RUN_NAME="mpa-Mistral-7b-v0.2-hf-rs-66k"
+WANDB_PROJECT="mpa-rejection-sampling"
+WANDB_RUN_NAME="default"
 
 # INPUT_TEMPLATE='[INST] {} [/INST] '  # cannot pass string with curly brackets to python as argument
     # --input_template "$INPUT_TEMPLATE" \  # only need to pass this during first generation of rollouts
@@ -64,8 +64,8 @@ while (($iter < $TRAINING_ITERS)); do
     --best_of_n $BEST_OF \
     --iter $iter \
     --rollout_batch_size $ROLLOUT_BATCH_SIZE \
-# #     --output_path $GENERATE_OUTPUT
-# EOF
+    --output_path $GENERATE_OUTPUT
+EOF
     echo $generate_commands
     python $generate_commands
     checkSuccess "GENERATE"
@@ -74,6 +74,7 @@ while (($iter < $TRAINING_ITERS)); do
 ../../batch_inference.py
     --eval_task rm \
     --pretrain $REWARD_MODEL_PATH \
+    --flash_attn \
     --bf16 \
     --max_len 2048 \
     --dataset $GENERATE_OUTPUT  \
