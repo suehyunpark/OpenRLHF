@@ -14,7 +14,7 @@ SAVE_PATH="./ckpt/mpa/7b_mistral_66k_ppo"
 WANDB_API_KEY="339cad8697ca8b7558010d3f8c4aa40788e64d12"
 WANDB_ENTITY="suehyun"
 WANDB_PROJECT="mpa-ppo"
-WANDB_RUN_NAME="mpa-Mistral-7b-v0.2-hf-ppo-66k"
+WANDB_RUN_NAME="mpa-Mistral-7b-v0.2-hf-ppo-66k-increase_kl_coef"
 
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
@@ -43,7 +43,7 @@ ray job submit --address="http://127.0.0.1:8265" \
     --bf16 \
     --actor_learning_rate 5e-7 \
     --critic_learning_rate 9e-6 \
-    --init_kl_coef 0.01 \
+    --init_kl_coef 0.2 \
     --prompt_data $DATASET_PATH \
     --prompt_data_probs 1.0 \
     --input_key input \
