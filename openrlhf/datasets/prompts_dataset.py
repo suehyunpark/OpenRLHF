@@ -4,6 +4,8 @@ from .utils import exist_and_not_none
 
 
 def preprocess_data(data, input_template=None, input_key=None) -> str:
+    system_prompt = None
+
     # custom dataset
     if input_key:
         prompt = data[input_key]
@@ -14,19 +16,14 @@ def preprocess_data(data, input_template=None, input_key=None) -> str:
             # tasksource/oasst1_pairwise_rlhf_reward
             if prompt.startswith("prompter:"):
                 prompt = (
-                    prompt.replace("prompter:", "\nHuman: ").replace("assistant:", "\nAssistant: ") + "\nAssistant: "
+                    prompt.replace("prompter:", "\nHuman:\n").replace("assistant:", "\nAssistant:\n")
+                    + "\nAssistant:\n"
                 )
             input_template = None  # do not modified with input template again
         # Open-Orca/OpenOrca
         elif exist_and_not_none(data, "system_prompt") and exist_and_not_none(data, "response"):
-            prompt = data["system_prompt"] + "\n" + data["question"]
-        # BelleGroup/train_0.5M_CN
-        # LLMs/Alpaca-ShareGPT
-        # yahma/alpaca-cleaned
-        # QingyiSi/Alpaca-CoT
-        elif exist_and_not_none(data, "instruction") and exist_and_not_none(data, "output"):
-            input = " " + data["input"] if exist_and_not_none(data, "input") else ""
-            prompt = data["instruction"] + input
+            system_prompt = data["system_prompt"]
+            prompt = data["question"]
         # lmsys/chatbot_arena_conversations
         elif exist_and_not_none(data, "winner") and exist_and_not_none(data, "conversation_a"):
 
@@ -36,8 +33,8 @@ def preprocess_data(data, input_template=None, input_key=None) -> str:
                     if "user" in l["role"]:
                         result.append(input_template.format(l["content"]))
                     else:
-                        result.append(l["content"])
-                return "\n".join(result)
+                        result.append(l["content"] + "\n")
+                return "".join(result)
 
             prompt = data["conversation_a"][:-1]
             prompt = process_chatbot_arena_conversations(prompt)
@@ -51,6 +48,9 @@ def preprocess_data(data, input_template=None, input_key=None) -> str:
     # input template
     if input_template:
         prompt = input_template.format(prompt)
+
+    if system_prompt:
+        prompt = system_prompt + "\n" + prompt
     return prompt
 
 
@@ -69,7 +69,7 @@ class PromptDataset(Dataset):
         dataset,
         tokenizer,
         strategy,
-        input_template="Human: {}\nAssistant: ",
+        input_template="Human:\n{}\nAssistant:\n",
     ) -> None:
         super().__init__()
         self.strategy = strategy

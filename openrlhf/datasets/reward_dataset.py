@@ -6,6 +6,8 @@ from .utils import exist_and_not_none, zero_pad_sequences
 
 
 def preprocess_data(data, input_template=None, prompt_key=None, chosen_key=None, rejected_key=None) -> str:
+    system_prompt = None
+
     # custom dataset
     if chosen_key and rejected_key:
         if prompt_key:
@@ -22,16 +24,12 @@ def preprocess_data(data, input_template=None, prompt_key=None, chosen_key=None,
             prompt = data["prompt"] if exist_and_not_none(data, "prompt") else ""
             if prompt.startswith("prompter:"):
                 prompt = (
-                    prompt.replace("prompter:", "\nHuman: ").replace("assistant:", "\nAssistant: ") + "\nAssistant: "
+                    prompt.replace("prompter:", "\nHuman:\n").replace("assistant:", "\nAssistant:\n")
+                    + "\nAssistant:\n"
                 )
             chosen = data["chosen"]
             reject = data["rejected"]
             input_template = None  # do not modified with input template again
-        # lvwerra/stack-exchange-paired
-        elif exist_and_not_none(data, "response_j"):
-            prompt = data["question"]
-            chosen = data["response_j"]
-            reject = data["response_k"]
         # lmsys/chatbot_arena_conversations
         elif exist_and_not_none(data, "winner") and exist_and_not_none(data, "conversation_a"):
 
@@ -41,8 +39,8 @@ def preprocess_data(data, input_template=None, prompt_key=None, chosen_key=None,
                     if "user" in l["role"]:
                         result.append(input_template.format(l["content"]))
                     else:
-                        result.append(l["content"])
-                return "\n".join(result)
+                        result.append(l["content"] + "\n")
+                return "".join(result)
 
             prompt = ""
             chosen = data["conversation_a"] if data["winner"] == "model_a" else data["conversation_b"]
@@ -55,11 +53,6 @@ def preprocess_data(data, input_template=None, prompt_key=None, chosen_key=None,
             prompt = data["question"]["full_text"]
             chosen = data["answer_0"] if data["score_0"] > data["score_1"] else data["answer_1"]
             reject = data["answer_1"] if data["score_0"] > data["score_1"] else data["answer_0"]
-        # damo/CValues-Comparison https://www.modelscope.cn/datasets/damo/CValues-Comparison/quickstart
-        elif exist_and_not_none(data, "pos_resp") and exist_and_not_none(data, "neg_resp"):
-            prompt = data["prompt"]
-            chosen = data["pos_resp"]
-            reject = data["neg_resp"]
         else:
             raise ValueError("Unknown reward dataset")
 
@@ -69,6 +62,9 @@ def preprocess_data(data, input_template=None, prompt_key=None, chosen_key=None,
     # input template
     if input_template:
         prompt = input_template.format(prompt)
+
+    if system_prompt:
+        prompt = system_prompt + "\n" + prompt
     return prompt, chosen, reject, margin
 
 
@@ -88,7 +84,7 @@ class RewardDataset(Dataset):
         tokenizer: Callable,
         max_length: int,
         strategy,
-        input_template="Human: {}\nAssistant: ",
+        input_template="Human:\n{}\nAssistant:\n",
         is_dpo=False,
     ) -> None:
         super().__init__()

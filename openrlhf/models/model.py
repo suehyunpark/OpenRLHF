@@ -12,8 +12,6 @@ from transformers.models.mixtral.modeling_mixtral import MixtralSparseMoeBlock
 
 from openrlhf.utils.logging import init_logger
 
-from .utils import find_all_linear_names
-
 logger = init_logger(__name__)
 
 
@@ -28,6 +26,7 @@ def get_llm_for_sequence_regression(
     lora_rank=0,
     lora_alpha=16,
     target_modules=None,
+    lora_dropout=0,
     normalize_reward=False,
     use_flash_attention_2=False,
     ds_config: dict = None,
@@ -118,7 +117,7 @@ def get_llm_for_sequence_regression(
         model_name_or_path,
         config=config,
         trust_remote_code=True,
-        torch_dtype="auto",
+        torch_dtype=torch.bfloat16 if bf16 else "auto",
         quantization_config=nf4_config,
         **kwargs,
     )
@@ -131,8 +130,8 @@ def get_llm_for_sequence_regression(
         lora_config = LoraConfig(
             r=lora_rank,
             lora_alpha=lora_alpha,
-            target_modules=target_modules or find_all_linear_names(model, load_in_4bit),
-            lora_dropout=0,
+            target_modules=target_modules,
+            lora_dropout=lora_dropout,
             bias="none",
         )
         model = get_peft_model(model, lora_config)
@@ -147,11 +146,11 @@ def get_llm_for_sequence_regression(
                     if hasattr(module, "weight"):
                         module = module.to(torch.bfloat16)
 
-    # Mixtral 8x7b - balancing loss
-    if "output_router_logits" in model.config.to_dict():
-        print("[Mixtral 8x7b] set output_router_logits as True")
+    # MoE - balancing loss
+    model_config = model.config.to_dict()
+    if "output_router_logits" in model_config:
+        print("[MoE] set output_router_logits as True")
         model.config.output_router_logits = True
-        deepspeed.utils.set_z3_leaf_modules(model, [MixtralSparseMoeBlock])
 
     # NOTE: For reward model training only, intialize value_head manually
     # because deepspeed.zero.Init() will not intialize them.
