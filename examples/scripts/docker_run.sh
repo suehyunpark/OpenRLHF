@@ -10,7 +10,7 @@ if [[ "${build}" == *"b"* ]]; then
 	docker image rm $IMAGE_NAME
 	docker build --network=host -t $IMAGE_NAME $PROJECT_PATH/dockerfile 
 else 
-	docker run --runtime=nvidia -it --rm --shm-size="10g" --cap-add=SYS_ADMIN \
+	docker run --runtime=nvidia --network=host -it --rm --shm-size="10g" --cap-add=SYS_ADMIN \
 		-v $PROJECT_PATH:/openrlhf -v  $HOME/.cache:/root/.cache -v  $HOME/.bash_history2:/root/.bash_history \
 		--name $container_name \
 		$IMAGE_NAME bash

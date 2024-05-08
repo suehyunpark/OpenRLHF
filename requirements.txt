@@ -2,12 +2,13 @@ bitsandbytes
 datasets
 deepspeed==0.14.0
 einops
-flash-attn==2.5.8
+flash-attn==2.5.0
 isort
 jsonlines
 loralib
 optimum
 packaging
+torch
 peft
 ray[default]==2.10.0
 torchmetrics
@@ -16,4 +17,4 @@ transformers==4.40.1
 transformers_stream_generator
 wandb
 wheel
-vllm==0.4.2
+vllm==0.4.1
