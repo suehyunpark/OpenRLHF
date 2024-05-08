@@ -11,12 +11,18 @@ RM_OUTPUT=./ckpt/7b_mistral_66k_rs/rm.jsonl
 MODEL_OUTPUT_PATH=./ckpt/7b_mistral_66k_rs
 ITER_LOG_PATH=./log/7b_mistral_66k_rs_iter.txt
 
-TRAINING_ITERS=480
-ROLLOUT_BATCH_SIZE=128
+WORLD_SIZE=${1:-4}
+REWARD_BATCH_SIZE=${2:-32}
+SFT_BATCH_SIZE=${3:-8}
+# ${parameter:-word}
+# If parameter is unset or null, the expansion of word is substituted. Otherwise, the value of parameter is substituted.
 
-POLICY_MODEL_PATH="kaist-ai/mpa-Mistral-7b-v0.2-hf-sft-epoch1"
+ROLLOUT_BATCH_SIZE=$((REWARD_BATCH_SIZE * WORLD_SIZE))
+TRAINING_ITERS=$((66000 / ROLLOUT_BATCH_SIZE))
+
+POLICY_MODEL_PATH="kaist-ai/mpa-Mistral-7b-v0.2-hf-sft-66k"
 REWARD_MODEL_PATH="kaist-ai/mpa-Mistral-7b-v0.2-rm-66k-openrlhf"
-DATASET_PATH="kaist-ai/mpa-pairwise-merged-66k"
+DATASET_PATH="kaist-ai/mpa-dpo-ppo-rs-66k"
 
 BEST_OF=4
 
@@ -82,7 +88,7 @@ EOF
     --zero_stage 0 \
     --tp_size 4 \
     --post_processor rs \
-    --micro_batch_size 32 \
+    --micro_batch_size $REWARD_BATCH_SIZE \
     --output_path $RM_OUTPUT
 EOF
     echo $get_rewards_commands
@@ -95,7 +101,7 @@ EOF
     --dataset $RM_OUTPUT \
     --dataset_probs 1.0 \
     --train_batch_size 128 \
-    --micro_train_batch_size 8 \
+    --micro_train_batch_size $SFT_BATCH_SIZE \
     --pretrain $POLICY_MODEL_PATH \
     --save_path $MODEL_OUTPUT_PATH \
     --lr_scheduler cosine \

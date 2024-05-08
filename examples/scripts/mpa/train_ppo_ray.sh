@@ -5,9 +5,9 @@ export PATH=$HOME/.local/bin/:$PATH
 
 # export CUDA_VISIBLE_DEVICES="5,4,6,7"
 
-SFT_MODEL_PATH="kaist-ai/mpa-Mistral-7b-v0.2-hf-sft-epoch1"
+SFT_MODEL_PATH="kaist-ai/mpa-Mistral-7b-v0.2-hf-sft-66k"
 REWARD_MODEL_PATH="kaist-ai/mpa-Mistral-7b-v0.2-rm-66k-openrlhf"
-DATASET_PATH="kaist-ai/mpa-pairwise-merged-66k"
+DATASET_PATH="kaist-ai/mpa-dpo-ppo-rs-66k"
 
 SAVE_PATH="./ckpt/mpa/7b_mistral_66k_ppo"
 
