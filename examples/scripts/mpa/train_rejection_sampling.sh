@@ -3,7 +3,7 @@ set -x
 mkdir -p ./ckpt/7b_mistral_66k_rs
 mkdir -p ./log
 
-export CUDA_VISIBLE_DEVICES="0,1,2,3"
+# export CUDA_VISIBLE_DEVICES="0,1,2,3"
 export NCCL_DEBUG=WARN
 
 GENERATE_OUTPUT=./ckpt/7b_mistral_66k_rs/generate.jsonl
@@ -15,7 +15,7 @@ TRAINING_ITERS=480
 ROLLOUT_BATCH_SIZE=128
 
 POLICY_MODEL_PATH="kaist-ai/mpa-Mistral-7b-v0.2-hf-sft-epoch1"
-REWARD_MODEL_PATH="kaist-ai/mpa-Mistral-7b-v0.2-hf-rm-66k"
+REWARD_MODEL_PATH="kaist-ai/mpa-Mistral-7b-v0.2-rm-66k-openrlhf"
 DATASET_PATH="kaist-ai/mpa-pairwise-merged-66k"
 
 BEST_OF=4
