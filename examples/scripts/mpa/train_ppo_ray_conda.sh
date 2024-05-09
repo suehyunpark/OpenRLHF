@@ -19,7 +19,7 @@ WANDB_RUN_NAME="use-helpful-rm"
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 ray job submit --address="http://127.0.0.1:8265" \
-    --runtime-env-json='{"working_dir": "/openrlhf", "pip": "/openrlhf/requirements.txt", "excludes": ["examples/scripts/mpa/ckpt/mpa/7b_mistral_66k_rs"]}' \
+    --runtime-env-json='{"working_dir": "/data/suehyun/OpenRLHF", "pip": "/data/suehyun/OpenRLHF/requirements.txt", "excludes": ["examples/scripts/mpa/ckpt/7b_mistral_66k_rs", "examples/scripts/mpa/ckpt/7b_mistral_66k_rm", "examples/scripts/mpa/ckpt/7b_mistral_66k_rm_helpful", "examples/scripts/mpa/checkpoints_rm"]}' \
     -- python3 examples/train_ppo_ray.py \
     --ref_num_nodes 1 \
     --ref_num_gpus_per_node 1 \
