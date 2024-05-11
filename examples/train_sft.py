@@ -3,6 +3,7 @@ import math
 import os
 from datetime import datetime
 
+from datasets import load_dataset
 from transformers.trainer import get_scheduler
 
 from openrlhf.datasets import SFTDataset
@@ -44,6 +45,7 @@ def train(args):
     )
     train_data = train_data.select(range(min(args.max_samples, len(train_data))))
     eval_data = eval_data.select(range(min(args.max_samples, len(eval_data))))
+        
     train_dataset = SFTDataset(
         train_data,
         tokenizer,
@@ -52,6 +54,13 @@ def train(args):
         pretrain_mode=args.pretrain_mode,
         input_template=args.input_template,
     )
+        
+    if args.eval_dataset:
+        eval_data = load_dataset(args.eval_dataset, split="test")
+        setattr(strategy.args, "input_key", "input")
+        setattr(strategy.args, "output_key", "chosen")
+
+        
     eval_dataset = SFTDataset(
         eval_data,
         tokenizer,
@@ -120,6 +129,7 @@ if __name__ == "__main__":
     parser.add_argument("--pretrain", type=str, default="bigscience/bloomz-1b7")
     parser.add_argument("--dataset", type=str, default="Dahoas/full-hh-rlhf")
     parser.add_argument("--dataset_probs", type=str, default="1.0", help="sampling probs for datasets")
+    parser.add_argument("--eval_dataset", type=str, default=None)
     parser.add_argument("--save_path", type=str, default="./ckpt")
     parser.add_argument("--save_steps", type=int, default=-1)
     parser.add_argument("--logging_steps", type=int, default=1)
