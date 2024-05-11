@@ -1,7 +1,7 @@
 set -x 
 
 mkdir -p ./ckpt/7b_mistral_66k_ppo_helpful
-export CUDA_VISIBLE_DEVICES="0,1,2,3"
+export CUDA_VISIBLE_DEVICES="4,5,6,7,8,9,10,11"
 
 SFT_MODEL_PATH="kaist-ai/mpa-Mistral-7b-v0.2-hf-sft-66k"
 REWARD_MODEL_PATH="kaist-ai/mpa-Mistral-7b-v0.2-rm-66k-helpful"
@@ -12,7 +12,7 @@ SAVE_PATH="./ckpt/7b_mistral_66k_ppo_helpful"
 WANDB_API_KEY="339cad8697ca8b7558010d3f8c4aa40788e64d12"
 WANDB_ENTITY="suehyun"
 WANDB_PROJECT="mpa-ppo"
-WANDB_RUN_NAME="use-helpful-rm"
+WANDB_RUN_NAME="use-helpful-rm-save-ckpt"
 
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
@@ -26,7 +26,7 @@ read -r -d '' training_commands <<EOF
     --micro_rollout_batch_size 8 \
     --rollout_batch_size 256 \
     --max_epochs 1 \
-    --save_steps 400 \
+    --save_steps 800 \
     --prompt_max_len 1024 \
     --generate_max_len 1024 \
     --zero_stage 2 \

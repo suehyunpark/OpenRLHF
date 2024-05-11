@@ -43,7 +43,7 @@ ray job submit --address="http://127.0.0.1:8265" \
     --bf16 \
     --actor_learning_rate 5e-7 \
     --critic_learning_rate 9e-6 \
-    --init_kl_coef 0.2 \
+    --init_kl_coef 0.1 \
     --prompt_data $DATASET_PATH \
     --prompt_data_probs 1.0 \
     --input_key input \
