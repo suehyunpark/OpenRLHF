@@ -1,17 +1,18 @@
 set -x
 
-mkdir -p ./ckpt/7b_mistral_66k_rs
+mkdir -p ./ckpt/7b_mistral_66k_rs_helpful
 mkdir -p ./log
 
-export CUDA_VISIBLE_DEVICES="0,1,2,3"
+export CUDA_DEVICE_ORDER=PCI_BUS_ID
 export CUDA_VISIBLE_DEVICES="4,5,6,7"
-
 export NCCL_DEBUG=WARN
 
-GENERATE_OUTPUT=./ckpt/7b_mistral_66k_rs/generate.jsonl
-RM_OUTPUT=./ckpt/7b_mistral_66k_rs/rm.jsonl
-MODEL_OUTPUT_PATH=./ckpt/7b_mistral_66k_rs
-ITER_LOG_PATH=./7b_mistral_66k_rs_iter.txt
+export CUDA_LAUNCH_BLOCKING="1"
+
+GENERATE_OUTPUT=./ckpt/7b_mistral_66k_rs_helpful/generate.jsonl
+RM_OUTPUT=./ckpt/7b_mistral_66k_rs_helpful/rm.jsonl
+MODEL_OUTPUT_PATH=./ckpt/7b_mistral_66k_rs_helpful
+ITER_LOG_PATH=./log/7b_mistral_66k_rs_helpful_iter.txt
 
 WORLD_SIZE=${1:-4}
 REWARD_BATCH_SIZE=${2:-32}
@@ -23,15 +24,16 @@ ROLLOUT_BATCH_SIZE=$((REWARD_BATCH_SIZE * WORLD_SIZE))
 TRAINING_ITERS=$((66000 / ROLLOUT_BATCH_SIZE))
 
 POLICY_MODEL_PATH="kaist-ai/mpa-Mistral-7b-v0.2-hf-sft-66k"
-REWARD_MODEL_PATH="kaist-ai/mpa-Mistral-7b-v0.2-rm-66k-openrlhf"
+REWARD_MODEL_PATH="kaist-ai/mpa-Mistral-7b-v0.2-rm-66k-helpful"
 DATASET_PATH="kaist-ai/mpa-dpo-ppo-rs-66k"
 
 BEST_OF=4
 
 WANDB_API_KEY="339cad8697ca8b7558010d3f8c4aa40788e64d12"
 WANDB_ENTITY="suehyun"
-WANDB_PROJECT="mpa-rejection-sampling"
-WANDB_RUN_NAME="default"
+WANDB_PROJECT="mpa-rejection-sampling-helpful"
+
+# export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 # INPUT_TEMPLATE='[INST] {} [/INST] '  # cannot pass string with curly brackets to python as argument
     # --input_template "$INPUT_TEMPLATE" \  # only need to pass this during first generation of rollouts
@@ -50,6 +52,8 @@ iter=0
 if [ -f $ITER_LOG_PATH ]; then
     iter=$(cat $ITER_LOG_PATH)
 fi
+
+echo $CUDA_VISIBLE_DEVICES
 
 while (($iter < $TRAINING_ITERS)); do
     echo "Iter: $iter"
@@ -102,21 +106,21 @@ while (($iter < $TRAINING_ITERS)); do
     --max_len 2048 \
     --dataset $RM_OUTPUT \
     --dataset_probs 1.0 \
+    --eval_dataset $DATASET_PATH \
     --train_batch_size 128 \
     --micro_train_batch_size $SFT_BATCH_SIZE \
     --pretrain $POLICY_MODEL_PATH \
     --save_path $MODEL_OUTPUT_PATH \
     --lr_scheduler cosine \
     --zero_stage 2 \
-    --max_epochs 2 \
+    --max_epochs 1 \
     --bf16 \
     --learning_rate 2e-6 \
     --gradient_checkpointing \
-    --flash_attn \
     --use_wandb $WANDB_API_KEY \
     --wandb_org $WANDB_ENTITY \
     --wandb_project $WANDB_PROJECT \
-    --wandb_run_name $WANDB_RUN_NAME
+    --wandb_run_name "iter_$iter"
 EOF
     echo $sft_commands
     deepspeed $sft_commands
