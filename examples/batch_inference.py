@@ -30,7 +30,7 @@ def batch_generate_vllm(args):
     tokenizer = AutoTokenizer.from_pretrained(args.pretrain, trust_remote_code=True)
 
     # configure model
-    llm = LLM(model=args.pretrain, tensor_parallel_size=args.tp_size, trust_remote_code=True, seed=args.seed)
+    llm = LLM(model=args.pretrain, tensor_parallel_size=args.tp_size, trust_remote_code=True, seed=args.seed, download_dir="/data/suehyun/.cache/huggingface/hub")
 
     # Create a sampling params object.
     sampling_params = SamplingParams(
@@ -336,7 +336,7 @@ if __name__ == "__main__":
     parser.add_argument("--reward_template", type=str, default=None)
     parser.add_argument("--enable_ca", action="store_true", default=False)
     parser.add_argument("--ca_prompt", type=str, default="<rm_score>: 5.00", help="Conditional SFT prompt")
-
+    
     args = parser.parse_args()
     if args.eval_task and args.eval_task == "generate":
         batch_generate(args)
