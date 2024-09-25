@@ -30,7 +30,7 @@ def batch_generate_vllm(args):
     tokenizer = AutoTokenizer.from_pretrained(args.pretrain, trust_remote_code=True)
 
     # configure model
-    llm = LLM(model=args.pretrain, tensor_parallel_size=args.tp_size, trust_remote_code=True, seed=args.seed)
+    llm = LLM(model=args.pretrain, tensor_parallel_size=args.tp_size, trust_remote_code=True, seed=args.seed, download_dir="/data/suehyun/.cache/huggingface/hub")
 
     # Create a sampling params object.
     sampling_params = SamplingParams(
@@ -100,8 +100,6 @@ def batch_generate(args):
         use_flash_attention_2=args.flash_attn,
         bf16=args.bf16,
     )
-    if args.to_bettertransformer:
-        model.to_bettertransformer()
 
     # configure tokenizer
     tokenizer = get_tokenizer(args.pretrain, model.model, "left", strategy, use_fast=not args.disable_fast_tokenizer)
@@ -250,7 +248,7 @@ def batch_rm_inference(args):
             input_ids = input_ids.squeeze(1).to(torch.cuda.current_device())
             attention_masks = attention_masks.squeeze(1).to(torch.cuda.current_device())
             # print(attention_masks)
-            rewards = model(input_ids, attention_masks).logits
+            rewards = model(input_ids, attention_masks)
             for prompt, output, reward in zip(info["input"], info["output"], rewards):
                 # print("Prompt:", prompt)
                 # print("Output:", output)
@@ -314,7 +312,6 @@ if __name__ == "__main__":
     parser.add_argument("--ta_prompt", type=str, default=None)
     parser.add_argument("--prompt_max_len", type=int, default=1024)
     parser.add_argument("--greedy_sampling", action="store_true", default=False)
-    parser.add_argument("--to_bettertransformer", action="store_true", default=False)
     parser.add_argument("--top_p", type=float, default=0.9)
     parser.add_argument("--temperature", type=float, default=1.0)
     parser.add_argument("--repetition_penalty", type=float, default=1.2)
@@ -339,7 +336,7 @@ if __name__ == "__main__":
     parser.add_argument("--reward_template", type=str, default=None)
     parser.add_argument("--enable_ca", action="store_true", default=False)
     parser.add_argument("--ca_prompt", type=str, default="<rm_score>: 5.00", help="Conditional SFT prompt")
-
+    
     args = parser.parse_args()
     if args.eval_task and args.eval_task == "generate":
         batch_generate(args)

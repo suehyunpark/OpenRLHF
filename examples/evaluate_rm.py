@@ -3,6 +3,8 @@ import math
 import os
 from collections import OrderedDict
 from datetime import datetime
+from tqdm import tqdm
+import torch
 
 from transformers.trainer import get_scheduler
 
@@ -12,7 +14,56 @@ from openrlhf.trainer import RewardModelTrainer
 from openrlhf.utils import blending_datasets, get_strategy, get_tokenizer
 
 
-def train(args):
+
+def concatenated_inputs(tokenizer, chosen_ids, c_mask, reject_ids, r_mask):
+    """Concatenate the chosen and rejected inputs into a single tensor.
+
+    Args:
+        batch: A batch of data. Must contain the keys 'chosen_input_ids' and 'rejected_input_ids', which are tensors of shape (batch_size, sequence_length).
+
+    Returns:
+        A dictionary containing the concatenated inputs under the key 'concatenated_input_ids'.
+    """
+
+    def pad_to_length(tensor, length, pad_value, dim=-1):
+        if tensor.size(dim) >= length:
+            return tensor
+        else:
+            pad_size = list(tensor.shape)
+            pad_size[dim] = length - tensor.size(dim)
+            # left pad
+            return torch.cat(
+                [pad_value * torch.ones(*pad_size, dtype=tensor.dtype, device=tensor.device), tensor], dim=dim
+            )
+
+    max_length = max(chosen_ids.shape[1], reject_ids.shape[1])
+    inputs_ids = torch.cat(
+        (
+            pad_to_length(chosen_ids, max_length, tokenizer.pad_token_id),
+            pad_to_length(reject_ids, max_length, tokenizer.pad_token_id),
+        ),
+        dim=0,
+    )
+    max_length = max(c_mask.shape[1], r_mask.shape[1])
+    att_masks = torch.cat((pad_to_length(c_mask, max_length, 0), pad_to_length(r_mask, max_length, 0)), dim=0)
+    return inputs_ids, att_masks
+
+
+
+def concatenated_forward(model, tokenizer, chosen_ids, c_mask, reject_ids, r_mask):
+    """Run the given model on the given batch of inputs, concatenating the chosen and rejected inputs together.
+
+    We do this to avoid doing two forward passes, because it's faster for FSDP.
+    """
+    input_ids, att_masks = concatenated_inputs(tokenizer, chosen_ids, c_mask, reject_ids, r_mask)
+    all_values, output = model(input_ids, attention_mask=att_masks, return_output=True)
+    chosen_rewards = all_values[: chosen_ids.shape[0]]
+    rejected_rewards = all_values[chosen_ids.shape[0] :]
+    aux_loss = output.aux_loss if "aux_loss" in output else []
+    return chosen_rewards, rejected_rewards, aux_loss
+
+
+def evaluate(args):
     # configure strategy
     strategy = get_strategy(args)
     strategy.setup_distributed()
@@ -38,11 +89,9 @@ def train(args):
 
     strategy.print(model)
 
-    # configure optimizer
-    optim = strategy.create_optimizer(model, lr=args.learning_rate, betas=(0.9, 0.95), weight_decay=args.l2)
 
     # prepare for data and dataset
-    train_data, eval_data = blending_datasets(
+    _, eval_data = blending_datasets(
         args.dataset,
         args.dataset_probs,
         strategy,
@@ -50,66 +99,71 @@ def train(args):
         max_count=5000000,
         stopping_strategy="all_exhausted",
     )
-    train_data = train_data.select(range(min(args.max_samples, len(train_data))))
     eval_data = eval_data.select(range(min(args.max_samples, len(eval_data))))
-    train_dataset = RewardDataset(train_data, tokenizer, args.max_len, strategy, input_template=args.input_template)
     eval_dataset = RewardDataset(eval_data, tokenizer, args.max_len, strategy, input_template=args.input_template)
 
-    train_dataloader = strategy.setup_dataloader(
-        train_dataset,
-        args.micro_train_batch_size,
-        True,
-        True,
-        train_dataset.collate_fn,
-    )
     eval_dataloader = strategy.setup_dataloader(
         eval_dataset, args.micro_train_batch_size, True, False, eval_dataset.collate_fn
     )
 
-    # scheduler
-    num_update_steps_per_epoch = len(train_dataloader) * args.max_epochs // strategy.accumulated_gradient
-    max_steps = math.ceil(args.max_epochs * num_update_steps_per_epoch)
-
-    scheduler = get_scheduler(
-        "cosine",
-        optim,
-        num_warmup_steps=math.ceil(max_steps * 0.03),
-        num_training_steps=max_steps,
-    )
-
-    # gradient_checkpointing
-    if args.gradient_checkpointing:
-        model.gradient_checkpointing_enable(
-            gradient_checkpointing_kwargs={"use_reentrant": args.gradient_checkpointing_use_reentrant}
-        )
-
     # strategy prepare
-    (model, optim, scheduler) = strategy.prepare((model, optim, scheduler))
-
-    if args.load_checkpoint:
-        strategy.print("Load checkpoint: ", args.save_path)
-
-    os.makedirs(args.save_path, exist_ok=True)
+    model = strategy.prepare(model)
 
     # batch_size here is micro_batch_size * 2
     # we use merged chosen + rejected response forward
-    trainer = RewardModelTrainer(
-        model=model,
-        strategy=strategy,
-        optim=optim,
-        tokenizer=tokenizer,
-        train_dataloader=train_dataloader,
-        eval_dataloader=eval_dataloader,
-        scheduler=scheduler,
-        max_norm=args.max_norm,
-        max_epochs=args.max_epochs,
-        loss=args.loss,
+    
+    step_bar = tqdm(
+        range(eval_dataloader.__len__()),
+        disable=not strategy.is_rank_0(),
     )
+    model.eval()
+    with torch.no_grad():
+        acc = 0
+        rewards = []
+        loss_sum = 0
+        for chosen_ids, c_mask, reject_ids, r_mask, margin in eval_dataloader:
+            chosen_ids = chosen_ids.squeeze(1).to(torch.cuda.current_device())
+            c_mask = c_mask.squeeze(1).to(torch.cuda.current_device())
+            reject_ids = reject_ids.squeeze(1).to(torch.cuda.current_device())
+            r_mask = r_mask.squeeze(1).to(torch.cuda.current_device())
+            margin = torch.tensor(margin).to(torch.cuda.current_device())
 
-    trainer.fit(args)
+            chosen_reward, reject_reward, _ = concatenated_forward(
+                model, tokenizer, chosen_ids, c_mask, reject_ids, r_mask
+            )
 
-    # save model checkpoint after fitting on only rank0
-    strategy.save_model(model, tokenizer, args.save_path)
+            rewards += [chosen_reward.flatten(), reject_reward.flatten()]
+            acc += (chosen_reward > reject_reward).float().mean().item()
+            step_bar.update()
+
+        acc_mean = acc / eval_dataloader.__len__()
+        loss_mean = loss_sum / eval_dataloader.__len__()
+
+        rewards = torch.cat(rewards).float()
+        rewards = strategy.all_gather(rewards)
+        reward_mean = torch.mean(rewards)
+        reward_std = torch.std(rewards).clamp(min=1e-8)
+
+        # save mean std
+        strategy.print("Set reward mean std")
+        unwrap_model = strategy._unwrap_model(model)
+        unwrap_model.config.mean = reward_mean.item()
+        unwrap_model.config.std = reward_std.item()
+
+        bar_dict = {
+            "eval_loss": loss_mean,
+            "acc_mean": acc_mean,
+            "reward_mean": reward_mean.item(),
+            "reward_std": reward_std.item(),
+        }
+        logs = strategy.all_reduce(bar_dict)
+        step_bar.set_postfix(logs)
+
+        histgram = torch.histogram(rewards.cpu(), bins=10, range=(-10, 10), density=True) * 2
+        strategy.print("histgram")
+        strategy.print(histgram)
+        
+        print(bar_dict)
 
 
 if __name__ == "__main__":
@@ -175,4 +229,5 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    train(args)
+    evaluate(args)
+

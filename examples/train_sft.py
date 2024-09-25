@@ -3,6 +3,7 @@ import math
 import os
 from datetime import datetime
 
+from datasets import load_dataset
 from transformers.trainer import get_scheduler
 
 from openrlhf.datasets import SFTDataset
@@ -26,6 +27,7 @@ def train(args):
         lora_rank=args.lora_rank,
         lora_alpha=args.lora_alpha,
         target_modules=args.target_modules,
+        lora_dropout=args.lora_dropout,
         ds_config=strategy.get_ds_train_config(is_actor=True),
     )
 
@@ -43,6 +45,7 @@ def train(args):
     )
     train_data = train_data.select(range(min(args.max_samples, len(train_data))))
     eval_data = eval_data.select(range(min(args.max_samples, len(eval_data))))
+        
     train_dataset = SFTDataset(
         train_data,
         tokenizer,
@@ -51,6 +54,13 @@ def train(args):
         pretrain_mode=args.pretrain_mode,
         input_template=args.input_template,
     )
+        
+    if args.eval_dataset:
+        eval_data = load_dataset(args.eval_dataset, split="test")
+        setattr(strategy.args, "input_key", "input")
+        setattr(strategy.args, "output_key", "chosen")
+
+        
     eval_dataset = SFTDataset(
         eval_data,
         tokenizer,
@@ -119,6 +129,7 @@ if __name__ == "__main__":
     parser.add_argument("--pretrain", type=str, default="bigscience/bloomz-1b7")
     parser.add_argument("--dataset", type=str, default="Dahoas/full-hh-rlhf")
     parser.add_argument("--dataset_probs", type=str, default="1.0", help="sampling probs for datasets")
+    parser.add_argument("--eval_dataset", type=str, default=None)
     parser.add_argument("--save_path", type=str, default="./ckpt")
     parser.add_argument("--save_steps", type=int, default=-1)
     parser.add_argument("--logging_steps", type=int, default=1)
@@ -152,15 +163,11 @@ if __name__ == "__main__":
     parser.add_argument("--load_in_4bit", action="store_true", default=False)
     parser.add_argument("--lora_rank", type=int, default=0)
     parser.add_argument("--lora_alpha", type=int, default=16)
-    parser.add_argument("--target_modules", type=list, default=None)
-    parser.add_argument("--input_template", type=str, default="[INST] {} [/INST] ")  # default="Human: {}\nAssistant: ")
+    parser.add_argument("--target_modules", type=str, nargs="*", default="all-linear")
+    parser.add_argument("--lora_dropout", type=float, default=0)
+    parser.add_argument("--input_template", type=str, default="[INST] {} [/INST] ")  # default="Human:\n{}\nAssistant:\n")
     parser.add_argument("--gradient_checkpointing_use_reentrant", action="store_true")
     parser.add_argument("--disable_fast_tokenizer", action="store_true", default=False)
-
-    parser.add_argument("--bos_token", type=str, default=None)
-    parser.add_argument("--eos_token", type=str, default=None)
-    parser.add_argument("--pad_token", type=str, default=None)
-    parser.add_argument("--unk_token", type=str, default=None)
 
     # custom dataset key name
     parser.add_argument("--input_key", type=str, default=None)
