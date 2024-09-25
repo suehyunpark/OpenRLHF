@@ -1,0 +1,56 @@
++ mkdir -p ./ckpt/mpa/7b_mistral_66k_rs
++ mkdir -p ./log/mpa
++ export NCCL_DEBUG=WARN
++ NCCL_DEBUG=WARN
++ GENERATE_OUTPUT=./ckpt/mpa/7b_mistral_66k_rs/generate.jsonl
++ RM_OUTPUT=./ckpt/mpa/7b_mistral_66k_rs/rm.jsonl
++ MODEL_OUTPUT_PATH=./ckpt/mpa/7b_mistral_66k_rs
++ ITER_LOG_PATH=./log/mpa/7b_mistral_66k_rs_iter.txt
++ TRAINING_ITERS=30
++ ROLLOUT_BATCH_SIZE=2048
++ POLICY_MODEL_PATH=kaist-ai/mpa-Mistral-7b-v0.2-hf-sft-epoch1
++ REWARD_MODEL_PATH=kaist-ai/mpa-Mistral-7b-v0.2-hf-rm-66k
++ DATASET_PATH=kaist-ai/mpa-train-pairwise-merged-66k
++ BEST_OF=4
++ WANDB_API_KEY=339cad8697ca8b7558010d3f8c4aa40788e64d12
++ WANDB_ENTITY=suehyun
++ WANDB_PROJECT=mpa-rm
++ WANDB_RUN_NAME=mpa-Mistral-7b-v0.2-hf-rs-66k
++ export PATH=/home/suehyun/.local/bin/:/home/suehyun/.conda/envs/openrlhf/bin:/home/suehyun/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/usr/local/cuda/bin
++ PATH=/home/suehyun/.local/bin/:/home/suehyun/.conda/envs/openrlhf/bin:/home/suehyun/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/usr/local/cuda/bin
++ iter=0
++ '[' -f ./log/mpa/7b_mistral_66k_rs_iter.txt ']'
++ (( 0 < 30 ))
++ echo 'Iter: 0'
++ (( iter > 0 ))
++ read -r -d '' generate_commands
++ echo ../../batch_inference.py --eval_task generate_vllm --pretrain kaist-ai/mpa-Mistral-7b-v0.2-hf-sft-epoch1 --max_new_tokens 1024 --dataset kaist-ai/mpa-train-pairwise-merged-66k --input_key input --dataset_probs 1.0 --temperature 0.9 --flash_attn --tp_size 4 --best_of_n 4 --iter 0 --rollout_batch_size 2048 --output_path ./ckpt/mpa/7b_mistral_66k_rs/generate.jsonl
++ srun python ../../batch_inference.py --eval_task generate_vllm --pretrain kaist-ai/mpa-Mistral-7b-v0.2-hf-sft-epoch1 --max_new_tokens 1024 --dataset kaist-ai/mpa-train-pairwise-merged-66k --input_key input --dataset_probs 1.0 --temperature 0.9 --flash_attn --tp_size 4 --best_of_n 4 --iter 0 --rollout_batch_size 2048 --output_path ./ckpt/mpa/7b_mistral_66k_rs/generate.jsonl
+srun: error: NodeNames=localhost CPUs=# or Procs=# with Boards=# is invalid and is ignored.
+/home/suehyun/.local/lib/python3.10/site-packages/transformers/utils/hub.py:124: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+  warnings.warn(
+Traceback (most recent call last):
+  File "/mnt/nas/suehyun/OpenRLHF/examples/scripts/mpa/../../batch_inference.py", line 12, in <module>
+    from openrlhf.models import Actor, get_llm_for_sequence_regression
+  File "/home/suehyun/.local/lib/python3.10/site-packages/openrlhf/models/__init__.py", line 1, in <module>
+    from .actor import Actor
+  File "/home/suehyun/.local/lib/python3.10/site-packages/openrlhf/models/actor.py", line 7, in <module>
+    from optimum.bettertransformer import BetterTransformer
+  File "/home/suehyun/.local/lib/python3.10/site-packages/optimum/bettertransformer/__init__.py", line 14, in <module>
+    from .models import BetterTransformerManager
+  File "/home/suehyun/.local/lib/python3.10/site-packages/optimum/bettertransformer/models/__init__.py", line 17, in <module>
+    from .decoder_models import (
+  File "/home/suehyun/.local/lib/python3.10/site-packages/optimum/bettertransformer/models/decoder_models.py", line 18, in <module>
+    from transformers.models.bart.modeling_bart import BartAttention
+  File "/home/suehyun/.local/lib/python3.10/site-packages/transformers/models/bart/modeling_bart.py", line 58, in <module>
+    from flash_attn import flash_attn_func, flash_attn_varlen_func
+  File "/home/suehyun/.local/lib/python3.10/site-packages/flash_attn/__init__.py", line 3, in <module>
+    from flash_attn.flash_attn_interface import (
+  File "/home/suehyun/.local/lib/python3.10/site-packages/flash_attn/flash_attn_interface.py", line 10, in <module>
+    import flash_attn_2_cuda as flash_attn_cuda
+ImportError: /home/suehyun/.local/lib/python3.10/site-packages/flash_attn_2_cuda.cpython-310-x86_64-linux-gnu.so: undefined symbol: _ZN3c104cuda14ExchangeDeviceEa
+srun: error: localhost: task 0: Exited with exit code 1
++ checkSuccess GENERATE
++ [[ 1 != 0 ]]
++ echo 'FAILED GENERATE'
++ exit 1

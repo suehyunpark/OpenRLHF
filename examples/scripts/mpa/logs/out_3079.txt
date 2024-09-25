@@ -1,0 +1,4 @@
+Iter: 0
+../../batch_inference.py --eval_task generate_vllm --pretrain kaist-ai/mpa-Mistral-7b-v0.2-hf-sft-epoch1 --max_new_tokens 1024 --dataset kaist-ai/mpa-pairwise-merged-66k --input_key input --dataset_probs 1.0 --temperature 0.9 --flash_attn --tp_size 4 --best_of_n 4 --iter 0 --rollout_batch_size 128 --output_path ./ckpt/mpa/7b_mistral_66k_rs/generate.jsonl
+[2024-05-08 14:25:39,629] [INFO] [real_accelerator.py:191:get_accelerator] Setting ds_accelerator to cuda (auto detect)
+FAILED GENERATE
